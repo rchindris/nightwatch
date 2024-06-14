@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "rem-challenge"
+version = "0.1.0"
+description = ""
+authors = ["Radu Chindris <radu.chindris@gmail.com>"]
+readme = "README.md"
+packages = [{include = "rem_challenge"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
