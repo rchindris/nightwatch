@@ -1,13 +1,14 @@
 """Sleep-Accel dataset processing functions."""
+
 from typing import List
 from datetime import datetime
 from pathlib import Path
-from collections import namedtuple
 
 import numpy as np
 import pandas as pd
 from scipy.signal import butter, filtfilt
 
+from nightwatch.data.common import UserData
 
 
 def _compute_activity_counts(acc_df: pd.DataFrame, fs: int = 50) -> pd.DataFrame:
@@ -40,8 +41,6 @@ def _compute_activity_counts(acc_df: pd.DataFrame, fs: int = 50) -> pd.DataFrame
     counts = np.expand_dims(counts, axis=1)
     output = np.hstack((time_counts, counts))
 
-
-UserData = namedtuple("UserData", ["labels", "motion", "heartrate", "activity_count"])
 
 class SleepAccel:
 
@@ -124,8 +123,8 @@ class SleepAccel:
             delim=" ",
             cols=["timestamp", "acc_x", "acc_y", "acc_z"])
 
-    def load_user_labels(self, user_id: str) -> pd.DataFrame:
-        """Load PSG labels."""
+    def load_user_psg(self, user_id: str) -> pd.DataFrame:
+        """Load PSG psg."""
         
         return self._load_user_file(
             user_id,
@@ -147,39 +146,37 @@ class SleepAccel:
         return self._load_user_file(
             user_id,
             fname="heartrate.txt",
-            cols=["timestamp", "bp"])
+            cols=["timestamp", "heartrate"])
 
     def load_user_data(self, user_id: str) -> UserData:
-        """Load raw samples for motion, heartrate and psg labels."""
+        """Load raw samples for motion, heart rate and psg."""
     
-        df_labels = self.load_user_labels(user_id)
+        df_psg = self.load_user_psg(user_id)
         df_motion = self.load_user_acc(user_id)
         df_heartrate = self.load_user_heartrate(user_id)
     
         # find the intersection of the samples on the time dimension
         min_ts = max(
-            df_labels.timestamp.min(),
+            df_psg.timestamp.min(),
             df_motion.timestamp.min(),
             df_heartrate.timestamp.min()
         )
         max_ts = min(
-            df_labels.timestamp.max(),
+            df_psg.timestamp.max(),
             df_motion.timestamp.max(),
             df_heartrate.timestamp.max()
         )
 
-        df_labels = df_labels[(df_labels.timestamp >= min_ts) & (df_labels.timestamp <= max_ts)]
+        df_psg = df_psg[(df_psg.timestamp >= min_ts) & (df_psg.timestamp <= max_ts)]
         df_motion = df_motion[(df_motion.timestamp >= min_ts) & (df_motion.timestamp <= max_ts)]
         df_heartrate = df_heartrate[(df_heartrate.timestamp >= min_ts) & (df_heartrate.timestamp <= max_ts)]
         df_activity = pd.DataFrame(self._compute_activity_counts(df_motion),
-                                   names=["timestamp", "activity_count"])
+                                   columns=["timestamp", "activity_count"])
 
-        return UserData(labels=df_labels,
+        return UserData(psg=df_psg,
                         motion=df_motion,
                         heartrate=df_heartrate,
                         activity_count=df_activity)
-
-        
         
         
     
