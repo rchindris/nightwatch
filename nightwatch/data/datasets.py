@@ -44,7 +44,7 @@ class SleepSeqDataset:
 
         self.feature_names = [
             "motion", "heartrate",
-            "cos_time", "real_time"
+            # "cos_time", "real_time"
         ]
         self.num_features = len(self.feature_names)
         self.num_labels = len(SleepStage)
@@ -68,7 +68,7 @@ class SleepSeqDataset:
             for item in raw_data:
                 feats = np.column_stack(
                     [
-                        np.array(item["features"][name])\
+                        np.array(item["features"][name], dtype=np.float32)\
                         for name in self.feature_names
 
                     ])
