@@ -23,17 +23,16 @@ from nightwatch.data.datasets import SleepSeqDataset
          "acceleration sequence dataset will be saved."
 )
 @click.option(
-    '--feat-window-size',
-    default=50,
+    "--window-size-min",
+    default=10,
     show_default=True,
-    help="The feature window size."
+    help="The input window size in minutes."
 )
 @click.option(
-    '--min-seq-len',
-    default=1,
+    "--window-stride-min",
+    default=5,
     show_default=True,
-    help="The minimum sequence length required to include "
-         "a sample in the dataset."
+    help="The input stride in minutes."
 )
 @click.option(
     '--train-test-split',
@@ -45,7 +44,8 @@ def build_sleep_accel_seq_ds(
         sleep_accel_dir: str = "../data/sleep-accel",
         target_dir: str = "../data/sleep-accel-seq",
         feat_window_size: int = 50,
-        min_seq_len: int = 1,
+        window_size_min: int = 10,
+        window_stride_min: int = 5,
         train_test_split: float = 0.9
 ):
     """Builds a sleep-accel dataset for sequence classification.
@@ -63,7 +63,8 @@ def build_sleep_accel_seq_ds(
     SleepSeqDataset.build_dataset(
         reader, extractor,
         target_dir=target_dir,
-        min_seq_len=min_seq_len,
+        window_size_min=window_size_min,
+        window_stride_min=window_stride_min,
         train_test_split=train_test_split
     )
     logging.info("Build complete.")

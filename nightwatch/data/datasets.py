@@ -6,7 +6,11 @@ from pathlib import Path
 
 import numpy as np
 
-from nightwatch.data.common import SleepDatasetReader, SleepFeatureExtractor
+from nightwatch.data.common import (
+    SleepStage,
+    SleepDatasetReader,
+    SleepFeatureExtractor
+)
 from nightwatch.data.features import SleepFeatureExtractor
 
 
@@ -37,7 +41,13 @@ class SleepSeqDataset:
         if not self.file_path.exists() or\
            not self.file_path.is_file():
             raise IOError(f"could not read {json_path}")
-        
+
+        self.feature_names = [
+            "motion", "heartrate",
+            "cos_time", "real_time"
+        ]
+        self.num_features = len(self.feature_names)
+        self.num_labels = len(SleepStage)
         self.data = []
         self.load_data()
 
@@ -58,19 +68,17 @@ class SleepSeqDataset:
             for item in raw_data:
                 feats = np.column_stack(
                     [
-                        np.array(item["features"][name]) for name in\
-                        ["motion", "heartrate", "cos_time", "real_time"]
+                        np.array(item["features"][name])\
+                        for name in self.feature_names
+
                     ])
-                sample = {
-                    'features': feats,
-                    'label': int(item['label'])
-                }
-                self.data.append(sample)
+                self.data.append((feats, int(item['label'])))
 
     def build_dataset(reader: SleepDatasetReader,
                       extractor: SleepFeatureExtractor,
                       target_dir: str = ".",
-                      min_seq_len: int = 3,
+                      window_size_min: int = 10,
+                      window_stride_min: int = 5,
                       train_test_split: float = 0.9):
         """Builds the dataset using the provided reader and feature
         extractor, and splits it into training and test sets.
@@ -82,8 +90,8 @@ class SleepSeqDataset:
                 SleepFeatureExtractor used to extract features from raw data.
             target_dir (str, optional): The directory where the processed
                 dataset will be saved. Defaults to the current directory.
-            min_seq_len (int, optional): The minimum sequence length required
-                to include a sample in the dataset. Defaults to 3.
+            window_size_min (int, optional): input size in minutes. Default: 10
+            window_stride_min (int, optional): window stride in minutes. Default: 5
             train_test_split (float, optional): The ratio of training to
                 testing data. Defaults to 0.9.
 
@@ -94,8 +102,6 @@ class SleepSeqDataset:
             raise ValueError("reader is None")
         if extractor is None:
             raise ValueError("extractor is None")
-        if min_seq_len <= 0:
-            raise ValueError("min_seq_len must be positive")
         if train_test_split < 0 or train_test_split > 1:
             raise ValueError("train_test_split must be a float between 0 and 1")
 
@@ -119,16 +125,24 @@ class SleepSeqDataset:
                 features.labels.shape[0]
             )
 
-            for slen in range(min_seq_len, max_seq_len - 1):
-                label = features.labels[slen + 1]
+            # Data is sampled every 30s.
+            window_size_samples = window_size_min * 2
+            window_stride_samples = window_stride_min * 2
+
+            for wend in range(window_size_samples,
+                              max_seq_len - window_size_samples,
+                              window_stride_samples):
+                label = features.labels[wend + 1]
+
+                wstart = wend - window_size_samples
 
                 samples.append({
                     "user_id": user_id,
                     "features": {
-                        "motion": list(features.motion[:slen]),
-                        "heartrate": list(features.heartrate[:slen]),
-                        "cos_time": list(features.cos_time[:slen]),
-                        "real_time": list(features.real_time[:slen])
+                        "motion": list(features.motion[wstart:wend]),
+                        "heartrate": list(features.heartrate[wstart:wend]),
+                        "cos_time": list(features.cos_time[wstart:wend]),
+                        "real_time": list(features.real_time[wstart:wend])
                     },
                     "label": int(label)
                 })

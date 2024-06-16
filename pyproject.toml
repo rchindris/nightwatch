@@ -8,6 +8,7 @@ packages = [{include = "nightwatch"}]
 
 [tool.poetry.scripts]
 build_seq_ds = "nightwatch.tools:build_sleep_accel_seq_ds"
+train_seq_cls = "nightwatch.train_seq:train_sleep_accel"
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -18,6 +19,8 @@ seaborn = "^0.13.2"
 scipy = "^1.13.1"
 click = "^8.1.7"
 tqdm = "^4.66.4"
+lightning = "^2.3.0"
+tensorboard = "^2.17.0"
 
 [tool.poetry.group.dev.dependencies]
 jupyter = "^1.0.0"
