@@ -4,7 +4,10 @@ import pandas as pd
 
 from scipy.stats import norm
 
-from nightwatch.data.common import SleepStage, UserData, WearableFeatures
+from nightwatch.data.common import (
+    SleepStage, UserData,
+    UserFeatures, SleepFeatureExtractor
+)
 
 
 def get_valid_psg(user_data: UserData, start_time: int, frame_size:
@@ -40,13 +43,14 @@ def get_valid_psg(user_data: UserData, start_time: int, frame_size:
     
     # interpolate unscored samples
     psg_samples.loc[:, "label"] = psg_samples.label.replace(
-            SleepStage.unscored.value, np.nan
+            SleepStage.unscored.value, 0
         )
     psg_samples.loc[:, "label"] = psg_samples.label.interpolate().astype(int)
+    psg_samples.reset_index(inplace=True, drop=True)
     return psg_samples
 
 
-def convolve_with_dog(y, box_pts):
+def _convolve_with_dog(y, box_pts):
     # from https://github.com/ojwalch/sleep_classifiers/
     y = y - np.mean(y)
     box = np.ones(box_pts) / box_pts
@@ -70,7 +74,7 @@ def convolve_with_dog(y, box_pts):
     return y_smooth
 
 
-class WearableFeatureExtractor:
+class SleepFeatureExtractor(SleepFeatureExtractor):
     """Compute features for heart rate and motion data."""
     
     def __init__(self, window_size: int = 50):
@@ -78,7 +82,7 @@ class WearableFeatureExtractor:
             raise ValueError("window_size must be positive")
         self.window_size = window_size
 
-    def __call__(self, user_data: UserData) -> WearableFeatures:
+    def compute_features(self, user_data: UserData) -> UserFeatures:
         """Extract features from user data."""
         if user_data is None:
             raise ValueError("user_data is None")
@@ -88,7 +92,7 @@ class WearableFeatureExtractor:
 
         cos_time, real_time = self._generate_time(valid_psg.timestamp)
         
-        return WearableFeatures(
+        return UserFeatures(
             motion=self._compute_activity_features(user_data, valid_psg.timestamp),
             heartrate=self._compute_hr_features(user_data, valid_psg.timestamp),
             cos_time=cos_time,
@@ -151,7 +155,7 @@ class WearableFeatureExtractor:
         # smooth and normalize
         num_samples = len(df.heartrate)
         df["heartrate"] = df.heartrate.fillna(hr_mean)
-        df["heartrate"] = convolve_with_dog(df.heartrate, 300)[:num_samples]
+        df["heartrate"] = _convolve_with_dog(df.heartrate, 300)[:num_samples]
         scalar = np.percentile(np.abs(df.heartrate), 90)
         df["heartrate"] = df.heartrate / scalar
 

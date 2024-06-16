@@ -6,6 +6,9 @@ authors = ["Radu Chindris <radu.chindris@gmail.com>"]
 readme = "README.md"
 packages = [{include = "nightwatch"}]
 
+[tool.poetry.scripts]
+build_seq_ds = "nightwatch.tools:build_sleep_accel_seq_ds"
+
 [tool.poetry.dependencies]
 python = "^3.10"
 pandas = "^2.2.2"
@@ -13,6 +16,8 @@ torch = "^2.3.1"
 matplotlib = "^3.9.0"
 seaborn = "^0.13.2"
 scipy = "^1.13.1"
+click = "^8.1.7"
+tqdm = "^4.66.4"
 
 [tool.poetry.group.dev.dependencies]
 jupyter = "^1.0.0"
