@@ -109,7 +109,7 @@ class SleepFeatureExtractor(SleepFeatureExtractor):
         sample_ts = pd.DataFrame({'timestamp': np.arange(df.index.min(), df.index.max() + 1, 1)})
         resampled = pd.merge(sample_ts, df, on='timestamp', how='left')
         resampled['activity_count'] = resampled['activity_count'].interpolate()
-        df = resampled
+        df = resampled.fillna(0.0)
 
         # the activity signal is convolved with a normalized gaussian
         # filter with mu=window_size/2 and sigma=50 (s)
@@ -128,6 +128,7 @@ class SleepFeatureExtractor(SleepFeatureExtractor):
             window_data = df['activity_count'][
                  max(0, idx - self.window_size + 1): idx
             ]
+
             actual_size = window_data.shape[0]
             if actual_size != self.window_size:
                 # pad window with zeros

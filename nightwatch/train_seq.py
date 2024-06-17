@@ -55,7 +55,7 @@ class SeqClassifierTrainer(pl.LightningModule):
         self.criterion = nn.CrossEntropyLoss()
         self.lr = lr
 
-    def forward(self, x, lengths):
+    def forward(self, x):
         """
         Forward pass through the network.
 
@@ -65,7 +65,7 @@ class SeqClassifierTrainer(pl.LightningModule):
         Returns:
             torch.Tensor: Output logits of shape (batch_size, num_labels).
         """
-        return self.model(x, lengths)
+        return self.model(x)
 
     def training_step(self, batch, batch_idx):
         """
@@ -78,9 +78,13 @@ class SeqClassifierTrainer(pl.LightningModule):
         Returns:
             torch.Tensor: The training loss.
         """
-        sequences, lengths, labels = batch
-        outputs = self(sequences, lengths)
+        sequences, labels = batch
+        outputs = self(sequences)
         loss = self.criterion(outputs, labels)
+        if np.isnan(loss.cpu().detach().numpy()):
+            print(sequences, labels)
+            exit(1)
+        
         self.log('train_loss', loss)
         return loss
 
@@ -95,8 +99,8 @@ class SeqClassifierTrainer(pl.LightningModule):
         Returns:
             torch.Tensor: The validation loss.
         """
-        sequences, lengths, labels = batch
-        outputs = self(sequences, lengths)
+        sequences, labels = batch
+        outputs = self(sequences)
         loss = self.criterion(outputs, labels)
         acc = (outputs.argmax(dim=1) == labels).float().mean()
         self.log('val_loss', loss, prog_bar=True)
@@ -138,11 +142,9 @@ def train_sleep_accel(ds_dir, model_path, num_units,
 
     train_loader = DataLoader(train_dataset,
                               batch_size=batch_size,
-                              collate_fn=collate_fn,
                               shuffle=True)
     test_loader = DataLoader(test_dataset,
-                             batch_size=batch_size,
-                             collate_fn=collate_fn)
+                             batch_size=batch_size)
 
     # Define the checkpoint directory
     exp_dir.mkdir(parents=True, exist_ok=True)

@@ -66,6 +66,7 @@ class SleepSeqDataset:
         with open(self.file_path, 'r') as f:
             raw_data = json.load(f)
             for item in raw_data:
+
                 feats = np.column_stack(
                     [
                         np.array(item["features"][name], dtype=np.float32)\
